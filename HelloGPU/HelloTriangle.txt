@@ -1,0 +1,251 @@
+//Be sure to include GLAD before GLFW. The include file for GLAD includes the required OpenGL headers behind the scenes (like GL/gl.h)
+//so be sure to include GLAD before other header files that require OpenGL (like GLFW)
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include <iostream>
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+
+//Settings:
+const unsigned int SCREEN_WIDTH = 800;
+const unsigned int SCREEN_HEIGHT = 600;
+
+
+
+//GLSL:
+//In order for OpenGL to use any shader we write, it has to dynamically compile it at (((RUN-TIME))) from its source code
+//Shaders are also very isolated programs in that they're not allowed to communicate with each other; the only communication they have is via their inputs (in) and outputs (out)
+//Vertex Shader GLSL code that will determine attributes format/configuration to process the vertex data of VBO according to it:
+const char* vertexShaderSource = "#version 330 core\n"
+"layout (location = 0) in vec3 aPos;\n"
+"layout (location = 1) in vec3 aCol;\n"
+"out vec3 calculatedColor;\n"
+"void main()\n"
+"{\n"
+"   gl_Position = vec4(aPos, 1.0);\n"
+"   calculatedColor = aCol;\n"
+"}\0";
+//Any Shader begins with a declaration of its version
+//gl_Position = a variable that outputs the position of our shape to be input for geometry shader. It takes 4 arguments (vec4) even if our attribute is vec3
+//aPos = (Pos)ition data (a)ttribute .. since we only need the position of vertices for now
+//Keyword "in" is used in vertex shader to only declare a vertex attribute since it's first shader | Layout (location = [index]) selects the attribute we want to pass data into by attribute index determined by step_6 of vertex data processing
+//gl_Position only takes normalized coordinates so we first have to transform the input data to coordinates that fall within OpenGL's visible region before actually store them in this variable
+
+//Fragment Shader GLSL code that will process fragments colors:
+const char* fragmentShaderSource = "#version 330 core\n"
+"out vec4 FragmentColor;\n"
+"in vec3 calculatedColor;\n" // No need to mention this variable in vertex shader GLSL because its a uniform
+"void main()\n"
+"{\n"
+"	FragmentColor = vec4(calculatedColor, 1.0);\n"
+"}\0";
+//In general, Colors are always vec4: RGBA (A for Alpha (opacity))
+//fragment shader requires a vec4 color output variable. If you fail fragment color will be black or white
+//Uniforms: GLOBAL variables different to attributes. uniform variable is unique per shader program object and can be accessed from any shader at any stage in the shader program
+//whatever you set the uniform value to, uniforms will keep their values until they're either reset or updated. It must be NOT empty
+//Uniforms locations are asigned automatically which can be returned in code as you will see. You can force it like normal attributes by typing layout (location = ..)
+//Keyword "in": is used to declare an input which may be an output from previous shader and in this case their names must be identical in both GLSLs
+//Keyword "out": is used to declare a variable that pushes fragment color as output from this shader. Since the Fragment Shader is the very last programmable step in the pipeline, the only place for an out variable to go is the pixel buffer.
+//if we want to send data from one shader to the other we'd have to declare an output in the sending shader and a similar input in the receiving shader
+//When the types and the names are equal on both sides OpenGL will link those variables together and then it is possible to send data between shaders (this is done when linking a program object)
+
+int main() //code: 0 (0x0) --> GOOD | code: anything else --> BAD!
+{
+	glfwInit(); //Start GLFW
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	//Instantiate a GLFW window:
+	GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello Triangle", NULL, NULL); //This function returns a pointer to a new window (object of type: GLFWwindow)
+	if (window == NULL) //Check if it failed
+	{
+		std::cout << "GLFW: Failed to create the window ! .. terminating" << std::endl;
+		glfwTerminate(); //Stop GLFW
+		return -1;
+	}
+	glfwMakeContextCurrent(window); //Here we tell GLFW to make the context of our window the main context on the current thread, as successfully creating the window doesn't change the context
+
+	//GLAD manages function pointers for OpenGL so we want to initialize GLAD before we call any OpenGL function:
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) //Here we ask GLAD to load (Load GL Loader) the address of the OpenGL function pointers (proc) which is OS-specific & then ask GLFW for the address of that OS-specific proc to pass it to GLAD
+	{
+		std::cout << "GLAD: Failed to initialize GLAD ! .. terminating" << std::endl; //Check if it failed
+		return -1;
+	}
+
+
+
+	//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Compiling Shader Programs <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	//Vertex Shader:
+	unsigned int vertexShader; // ID
+	vertexShader = glCreateShader(GL_VERTEX_SHADER); //Create vertex shader object in GPU, takes the type of shader program we want to create and return the ID number
+	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); //Prime the GLSL src (3rd arg) after passing one string of it (2nd arg) in VRAM inside an object of a suitable shader context (1st arg) 
+	glCompileShader(vertexShader); //Compile the source code to create the shader
+	//Check for vertex shader compilation errors:
+	int success;
+	char errorLog[512];
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success); //iv = integer vector/pointer to compilation status that OpenGL monitors (As shader code is compiled at RUN-TIME this is the only means to check errors in it)
+	if (!success)
+	{
+		glGetShaderInfoLog(vertexShader, 512, NULL, errorLog); //InfoLog = return info in log form (string) .. that's why we allocated a string earlier for it
+		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << errorLog << std::endl;
+	}
+
+	//Fragment Shader:
+	unsigned int fragmentShader; // ID
+	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	glCompileShader(fragmentShader);
+	//Check for fragment shader compilation errors:
+	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+	if (!success)
+	{
+		glGetShaderInfoLog(fragmentShader, 512, NULL, errorLog);
+		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << errorLog << std::endl;
+	}
+
+	//Linking Shader Program: final linked version of multiple shaders combined (links the outputs of each shader to the inputs of the next shader)
+	unsigned int shaderProgram;
+	shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
+	glLinkProgram(shaderProgram); //This links all attached shaders in one final shader program object by matching each output to each input
+	//Check for shader program compilation errors:
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+		glGetProgramInfoLog(shaderProgram, 512, NULL, errorLog);
+		std::cout << "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n" << errorLog << std::endl;
+	}
+
+	//Deallocate VRAM and delete shaders (Shader src compiling programs) after linking them as the shader program is now ready for drawing in the current program object
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+	//-------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+	//After GLFW created a window for our game and GLAD specified exact OpenGL version, we have to tell OpenGL the size of the rendering window so OpenGL knows how we want to display the data and coordinates with respect to the window
+	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT); //Meaning before rendering we tell OpenGL : Render in a viewport of SCREEN_WIDTH x SCREEN_HEIGHT
+
+	//We register the callback functions after we've created the window and before the render loop is initiated:
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); //Resize the render viewport whenever user resizes GLFW window by registering the callback we wrote to our GLFW window
+
+
+
+	//To start drawing something (Start the graphics pipeline) we have to first give OpenGL some input vertex data after processing it:
+	//Step_1:Vertex data definition:
+	float fkinTriangles_Vertices[] = {
+		// Position attribute:    Color toward vertex:   EBO index:   Current Shape:
+		//X:   Y:    Z:           R:    G:    B:
+	    0.5f, -0.5f, 0.0f,        1.0f, 0.0f, 0.0f,   // (0) Right    Colorful triangle
+	   -0.5f, -0.5f, 0.0f,        0.0f, 1.0f, 0.0f,   // (1) Left
+	    0.0f,  0.5f, 0.0f,        0.0f, 0.0f, 1.0f    // (2) Top
+	};
+	//EBO is buffer for storing indices of vertices we have (each unique vertex has an index) for index drawing
+	unsigned int eboIndices[] = {
+		0, 1, 2
+	};
+
+	//Step_2:Generating buffer objects with a buffer ID for each one:
+	unsigned int VBO, VAO, EBO; //Actual ID "number" referencing to a VRAM buffer called VBO & another for VAO (not the actual buffer but an empty array (not on VRAM) of size of uint) where glGenBuffers() will store resulting ID number of buffer object
+	glGenVertexArrays(1, &VAO); //Allocate one vertex array in VRAM and reference to it by ID number stored at a specific location as an uint (VAO in this case)
+	glGenBuffers(1, &VBO); //Allocate one buffer in VRAM and reference to it by ID number stored at a specific location as an uint (VBO in this case)
+	glGenBuffers(1, &EBO); //EBO buffer is exactly like VBO
+
+	//Step_3:Binding VAO first that will store upcoming-to-be-bound: Vertex attribute configurations via glVertexAttribPointer & Vertex buffer objects associated with vertex attributes by calls to glVertexAttribPointer .. In addition to: EBO (if VAO is unbound firstly)
+	glBindVertexArray(VAO);
+
+	//Step_4:Binding every generated buffer with the target suitable for its type (the target, buffer will land on, so buffer is selected by OpenGL big state-machine to be worked/focused on)
+	//Step_5:Copy pre-defined data into the currently bound (allocated) buffer to store this data on GPU VRAM
+	glBindBuffer(GL_ARRAY_BUFFER, VBO); //We chose GL_ARRAY_BUFFER to indicate that we are binding (= selecting/working on) a vertex buffer (its type basically which is an array of values back to back)
+	//From that point on any buffer calls we make (on the GL_ARRAY_BUFFER target) will be used to configure the currently bound buffer, which is VBO
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fkinTriangles_Vertices), fkinTriangles_Vertices, GL_STATIC_DRAW); //This function starts passing data into the VRAM buffer .. Arguments: Current buffer type (which is the state-machine target it's bound to), size of data, data, how to manage given data
+	//4th arg (Data usage): GL_STREAM_DRAW --> data set once and used few times
+	//--------------------- GL_STATIC_DRAW --> data set once and used many times ... we chose GL_STATIC_DRAW because we set out FkinTriangle once and will use it every frame draw (so .. alot)
+	//--------------------- GL_DYNAMIC_DRAW --> data set many times and used many times
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); //We chose GL_ELEMENT_ARRAY_BUFFER this time to indicate that we are binding (= selecting/working on) an element buffer (its type basically which is an array of elements (indices) back to back)
+	//From that point on any buffer calls we make (on the GL_ELEMENT_ARRAY_BUFFER target) will be used to configure the currently bound buffer, which is EBO
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(eboIndices), eboIndices, GL_STATIC_DRAW);
+
+	//Step_6:Interpreting vertex data by specifying each single vertex and each single attribute of this single vertex (In general, dividing the data currently bound to GL_ARRAY_BUFFER (currently VBO) - which is a one array of values - into attributes)
+	//--Each attribute in the data will have an index (basically its name in the vertex data), size of components (1-4 .. ex: pos attrib takes 3 compenets x,y,z)
+	//--Here we also tell OpenGL: data type of components inside the single attribute, Whether data values should be normalized (automatically) or not, Stride (space between consecutive vertex attributes in bytes (from the beginning of first attribute of its kind to beginning of second one of same kind in second vertex)
+	//--In this step we also tell OpenGL the pointer/position to starting point of first attribute of its kind (or the start of attribute in the first vertex only)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0); //Since the position data is at the start of the data array, starting position (last arg) is 0 but because this is a pointer it's interpreted to this form (GLvoid*)(size of bytes since the start position)
+	glEnableVertexAttribArray(0); //Enable a generic vertex shader attribute as vertex attributes are disabled by default after specifying them
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float))); //Color attribute data (2nd attribute)
+	glEnableVertexAttribArray(1);
+	//Now vertex data is linked to the vertex shader's vertex attributes
+
+	//GOLDEN RULE: VAO will permanently remembers both VBO and EBO .. so at drawing we just bind the correct VAO
+	//BUT,         VAO records VBO indirectly by just listening to glVertexAttribPointer even if we unbounded VBO before VAO
+	//             VAO records EBO directly as long as the correct EBO is bound while its VAO is STILL bound and recording is done when VAO is unbound first and after this EBO is safe to be unbound
+	//             The last EBO that gets bound while a VAO is bound, is stored as the VAO's EBO after unbinding the VAO. Binding to a VAO then also automatically binds that EBO.
+
+	//Step_7:Unbind buffers to free VRAM
+	glBindBuffer(GL_ARRAY_BUFFER, 0); //Note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+
+	// REMEMBER!!: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound
+
+	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+	glBindVertexArray(0);
+
+	//To draw primitives in wireframe mode to see how OpenGL arranged them together to draw the object:
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //The first argument says we want to apply it to the front and back of all triangles and the second line tells us to draw them as lines
+	//Any subsequent drawing calls will render the triangles in wireframe mode until we set it back to its default using glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+
+
+
+	//Create RENDER LOOP, that keeps running until we tell GLFW to explicitly stop
+	//NOTE: An iteration of the render loop is called a "frame"
+	//Put all rendering commands here. This code block defines what happens each frame
+	while (!glfwWindowShouldClose(window))
+	{
+		processInput(window); //Handle user input
+
+		//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Rendering Commands <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); //Choose a color to replace color buffer contents with it
+		glClear(GL_COLOR_BUFFER_BIT); //Clear only color buffer and replace it with the registered color
+
+		//Draw the fkinTriangle:
+		glUseProgram(shaderProgram); //Set a program object - with shaders compiled and linked beforehand - as current context to start pipeline and draw
+		//Every shader and rendering call after glUseProgram will now use this program object(and thus the shaders)
+		glBindVertexArray(VAO); //Bind the VAO of our fkinTriangles vertex data so it knows automatically which VBO to process for its specific attribute config
+
+		//glDrawArrays(GL_TRIANGLES, 0, 3); //Draw primitives using the currently active shader, the previously defined vertex attribute configuration and with the VBO's vertex data (indirectly bound via the VAO)
+		//----------------------------------Arguments: primitive type - VAO index (in case we generated many VAOs) - how many vertices we want to draw
+
+		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0); //Draw primitives using indices provided in the element buffer object (EBO that's currently bound automatically by VAO)
+		//-----------------------------------------------------Arguments: primitive type - how many vertices (expressed now by indices) we want to draw (not unique - literally indices count in indices array we provided) - data type of indices
+		//-----------------------------------------------------Last Arg.: If you had multiple objects stored in one single EBO, you would put the byte offset here to tell OpenGL where the indices of object you wanna draw now start
+
+		//No need to unbind VAO after drawing for now. Do it if you have multiple VAOs
+
+		//---------------------------------------------------------------------------------------------------------------------------------------------
+
+		glfwSwapBuffers(window); //Swap the Double buffer to the back one (Cumulinating drawn pixels) when we end drawing the frame
+		glfwPollEvents(); //Wait for any events from user (handled after that by callback functions)
+	}
+
+
+	glfwTerminate();
+	return 0;
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) //Callback definition to resize the render viewport whenever user resizes GLFW window
+{
+	glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window) //Callback definition to handle user input in a specific window
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, true); //If we pressed ESCAPE window should close
+	}
+}
