@@ -12,6 +12,6 @@ If you want to clone the project on your PC, you need: Visual Studio 2022 / 2026
 Then do as following:
 
 - Open the `HelloGPU.sln` solution file with Visual Studio.
-- Set up third party libs (GLFW & GLAD) <b>for OpenGL 3.3 (Please be careful .. 3.3)</b> and don't forget to link their locations in project properties directories ( follow the tutorial on [learnopengl.com](https://learnopengl.com/Getting-started/Creating-a-window) )
+- Set up third party libs (GLFW & GLAD) <b>for OpenGL 3.3 (Please be careful .. 3.3)</b> and don't forget to link their locations in project properties directories ( follow this [tutorial](https://learnopengl.com/Getting-started/Creating-a-window) )
 - After setting up the libs, double click the solution file in solution explorer and wait for it to build
 - If you found redlines or undefined code, it means that you didn't include third party libs properly
