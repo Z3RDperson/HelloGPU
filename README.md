@@ -2,6 +2,8 @@
 
 My OpenGL learning project.
 
+<img align="right" src="Documentation images/Screenshot-HelloTriangle-001.png" width="320px"/>
+
 As I am still learning (both OpenGL & Git), I like to add many comments around code and leave old code commented out to point out the structure for myself and make a reference for future projects. So forgive me for lack of professionalism.
 
 ### How to build for Windows 10+ :
