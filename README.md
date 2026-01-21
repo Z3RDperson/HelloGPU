@@ -21,3 +21,6 @@ Then do as following:
 
 ### Backup .txt files :
 Before getting introduced to Git, I played around with rendering code to try different things and stored it in these files. It's like a mini rudimentary version control for just the first RGB Hello Triangle, as it's the first and hardest milestone in learning any graphics API anyway.
+
+### OpenGL Hello Triangle :
+This project will keep moving forward. If you just want the boilerplate to render your first RGB Triangle, I keep its code in `HelloTriangle.txt`. Copy the code inside and paste it in main. You don't need anything else.
