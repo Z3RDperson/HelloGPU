@@ -23,13 +23,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="First_HelloTriangle_Backup_01.txt" />
-    <Text Include="First_HelloTriangle_Backup_02.txt" />
-    <Text Include="First_HelloTriangle_Backup_03.txt" />
-    <Text Include="First_HelloTriangle_Backup_04.txt" />
-    <Text Include="Second_HelloTriangle_Backup_01.txt" />
-    <Text Include="HelloTriangle.txt" />
-    <Text Include="HelloTriangle_Abstracted.txt" />
+    <Text Include="Backup\First_HelloTriangle_Backup_01.txt" />
+    <Text Include="Backup\First_HelloTriangle_Backup_02.txt" />
+    <Text Include="Backup\First_HelloTriangle_Backup_03.txt" />
+    <Text Include="Backup\First_HelloTriangle_Backup_04.txt" />
+    <Text Include="Backup\Second_HelloTriangle_Backup_01.txt" />
+    <Text Include="Backup\HelloTriangle.txt" />
+    <Text Include="Backup\HelloTriangle_Abstracted.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="shader_master.h">
