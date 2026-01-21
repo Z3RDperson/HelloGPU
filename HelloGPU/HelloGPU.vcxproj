@@ -137,6 +137,7 @@
     <Text Include="First_HelloTriangle_Backup_03.txt" />
     <Text Include="First_HelloTriangle_Backup_04.txt" />
     <Text Include="HelloTriangle.txt" />
+    <Text Include="HelloTriangle_Abstracted.txt" />
     <Text Include="Second_HelloTriangle_Backup_01.txt" />
   </ItemGroup>
   <ItemGroup>
