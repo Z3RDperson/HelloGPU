@@ -21,6 +21,9 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="stb_image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Backup\First_HelloTriangle_Backup_01.txt" />
@@ -35,9 +38,20 @@
     <ClInclude Include="shader_master.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\vertexShader\RGB_HelloTriangle_vertexSh.glsl" />
     <None Include="Shaders\fragmentShader\RGB_HelloTriangle_fragSh.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Textures\images\island.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Textures\images\kenway.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
